@@ -97,9 +97,6 @@ int main(int, char**)
     /*--------RESOURCES SET UP--------*/
     Camera camera(1280, 720, glm::vec3(0.0f, 1.0f, 5.0f));
     Shader shader("./res/shaders/basic.vert", "./res/shaders/basic.frag");
-    //Model ground(PLANE);
-    //Model house(CUBE, true);
-    //Model roof(ROOF, true);
     Transform* instancedTrans = new Transform(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f));
     instancedTrans->setTranslations(200);
 
@@ -111,34 +108,17 @@ int main(int, char**)
     GraphNode house(new Model(CUBE, instancedTrans->translations, true), instancedTrans, true); //domek :3
     GraphNode roof(new Model(ROOF, instancedTrans->translations, true), instancedTrans, true); //dach
 
-    GraphNode lightDir(new Model(LIGHT_DIR, empty), new Transform(glm::vec3(glm::radians(180.0f), 0.0f, 0.0f), glm::vec3(0.0f, 50.0f, -10.0f), glm::vec3(1.0f, 10.0f, 1.0f)), false); //swiato kierunkowe
-
-    GraphNode pointRotation(nullptr, new Transform(glm::vec3(0.0f, 0.2f, 0.0f), glm::vec3(0.0f), glm::vec3(1.0f)), false);
-    GraphNode lightPoint(new Model(LIGHT_POINT, empty), new Transform(glm::vec3(0.0f), glm::vec3(50.0f, 3.0f, 0.0f), glm::vec3(0.5f)), false);
-
-    GraphNode spotLight1(new Model(LIGHT_DIR, empty), new Transform(glm::vec3(0.0f), glm::vec3(8.0f, 6.0f, 4.0f), glm::vec3(1.0f)), false);
-    GraphNode spotLight2(new Model(LIGHT_DIR, empty), new Transform(glm::vec3(0.0f), glm::vec3(-48.0f, 8.0f, -10.0f), glm::vec3(1.0f)), false);
-
     /*--------ASSIGNING CHILDREN--------*/
     root.addChild(new GraphNode(new Model(PLANE, empty), new Transform(glm::vec3(0.0f), glm::vec3(0.0f), glm::vec3(1.0f)), false)); //ziemia
     root.addChild(&housesRoot);
-    root.addChild(&lightDir);
-    root.addChild(&pointRotation);
-    root.addChild(&spotLight1);
-    root.addChild(&spotLight2);
 
     housesRoot.addChild(&house);
     house.addChild(&roof);
 
-    pointRotation.addChild(&lightPoint);
-
-
     /*--------LIGHTS--------*/
     glm::vec3 lightPos = glm::vec3(0.0f, 4.0f, 0.0f);
-    glm::vec3 spotPos[] = {spotLight1.transform->getPosition(), spotLight2.transform->getPosition()};
 
     shader.use();
-    shader.setVec3("lightPos", lightPoint.transform->getPosition());
     shader.setVec3("camPos", camera.Position);
 
 
@@ -198,31 +178,6 @@ int main(int, char**)
             ImGui::NewLine();
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
             ImGui::End();
-
-            ImGui::Begin("Point light");
-            ImGui::Checkbox("enabled", &pointEnabled);
-            ImGui::SameLine();
-            ImGui::Checkbox("rotation", &pointRot);
-            ImGui::SameLine();
-            ImGui::Checkbox("visualize position", &lightPoint.render);
-            ImGui::NewLine();
-            ImGui::End();
-
-            ImGui::Begin("Spot light 1");
-            //ImGui::SliderFloat3("Light position", (float*)&spotPos[0], -50.0f, 50.0f);
-            ImGui::SliderFloat3("Light direction", (float*)&spotDir[0], -1.0f, 1.0f);
-            ImGui::Checkbox("enabled", &spotEnabled[0]);
-            ImGui::SameLine();
-            ImGui::Checkbox("visualize", &spotLight1.render);
-            ImGui::End();
-
-            ImGui::Begin("Spot light 2");
-            //ImGui::SliderFloat3("Light position", (float*)&spotPos[1], -50.0f, 50.0f);
-            ImGui::SliderFloat3("Light direction", (float*)&spotDir[1], -1.0f, 1.0f);
-            ImGui::Checkbox("enabled", &spotEnabled[1]);
-            ImGui::SameLine();
-            ImGui::Checkbox("visualize", &spotLight2.render);
-            ImGui::End();
         }
 
         /*--------SHADER VARIABLES--------*/
@@ -232,27 +187,14 @@ int main(int, char**)
         shader.setVec3("dirDir", dirDir);
         shader.setBool("pointEnabled", pointEnabled);
 
-        shader.setVec3Array("spotPos", 2, *spotPos);
-        shader.setVec3Array("spotDir", 2, *spotDir);
+        /*shader.setVec3Array("spotPos", 2, *spotPos);
+        shader.setVec3Array("spotDir", 2, *spotDir);*/
 
         int spotInt[] = {(int)spotEnabled[0], (int)spotEnabled[1]};
         shader.setIntArray("spotEnabled", 2, spotInt);
 
         /*--------LIGHTS--------*/
-        if(dirVis) {
-            lightDir.transform->showDirection(glm::vec3(glm::radians(-90.0f * dirDir.z), 0.0f, glm::radians(90.0f * dirDir.x)), glm::vec3(1.0f, dirDir.y * 10.0f, 1.0f));
-        } else {
-            lightDir.transform->showDirection(glm::vec3(glm::radians(-90.0f * dirDir.z), 0.0f, glm::radians(90.0f * dirDir.x)), glm::vec3(0.0f));
-        }
-        //-----------
-        if(pointRot)
-            pointRotation.transform->constRotation(deltaTime);
-
-        shader.setMat4("lightModel", pointRotation.transform->getLocalModel());
-
-        //-----------
-        spotLight1.transform->showDirection(glm::vec3(-spotDir[0].z, 0.0f, spotDir[0].x), glm::vec3(1.0f, 5.0f, 1.0f));
-        spotLight2.transform->showDirection(glm::vec3(-spotDir[1].z, 0.0f, spotDir[1].x), glm::vec3(1.0f, 5.0f, 1.0f));
+        
 
         /*--------RENDER--------*/
         root.draw(shader, deltaTime);
